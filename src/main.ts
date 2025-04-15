@@ -2,9 +2,8 @@ import './style.css';
 
 interface SpeedTestResult {
   downloadSpeed: number;
-  uploadSpeed: number;
+  uploadSpeed: number | null;
   latency: number;
-  jitter: number;
   ipAddress: string;
   isp: string;
   serverLocation: string;
@@ -16,13 +15,14 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <div class="terminal">
     <h1>$ Terminal Speed Test v1.0.0</h1>
-    <div class="result">Type 'help' to view available commands.</div>
-    <div class="help-link"><a href="/public/help.html" target="_blank">Open Help Guide</a></div>
+    <div class="result">Initializing... Type 'help' to view available commands.</div>
+    <div class="help-link"><a href="/help.html" target="_blank">Open Help Guide</a></div>
     <div id="terminal-output"></div>
     <div id="command-line">
       <span class="prompt">root@internet-speedtest:~$</span>
-      <input type="text" id="command-input" autofocus />
+      <span id="input-display"></span>
       <span class="cursor"></span>
+      <input type="text" id="command-input" autofocus />
     </div>
   </div>
 `;
@@ -30,11 +30,15 @@ app.innerHTML = `
 const terminalOutput = document.getElementById('terminal-output') as HTMLDivElement;
 const commandInput = document.getElementById('command-input') as HTMLInputElement;
 const commandLine = document.getElementById('command-line') as HTMLDivElement;
+const inputDisplay = document.getElementById('input-display') as HTMLSpanElement;
 
 // Hide the actual input field and handle input display manually
 commandInput.style.opacity = '0';
 commandInput.style.position = 'absolute';
 commandInput.style.zIndex = '-1';
+commandInput.style.width = '1px';
+commandInput.style.height = '1px';
+commandInput.style.caretColor = 'transparent';
 
 // Focus the input field when clicking anywhere in the terminal
 document.querySelector('.terminal')?.addEventListener('click', () => {
@@ -51,7 +55,7 @@ let inputBuffer = '';
 commandInput.addEventListener('input', (e) => {
   const target = e.target as HTMLInputElement;
   inputBuffer = target.value;
-  renderCommandLine();
+  inputDisplay.textContent = inputBuffer;
 });
 
 commandInput.addEventListener('keydown', (e) => {
@@ -63,64 +67,67 @@ commandInput.addEventListener('keydown', (e) => {
     }
     if (historyIndex < commandHistory.length - 1) {
       historyIndex++;
-      commandInput.value = commandHistory[commandHistory.length - 1 - historyIndex];
-      inputBuffer = commandInput.value;
-      renderCommandLine();
+      inputBuffer = commandHistory[commandHistory.length - 1 - historyIndex];
+      commandInput.value = inputBuffer;
+      inputDisplay.textContent = inputBuffer;
     }
   } else if (e.key === 'ArrowDown') {
     e.preventDefault();
     if (historyIndex > 0) {
       historyIndex--;
-      commandInput.value = commandHistory[commandHistory.length - 1 - historyIndex];
+      inputBuffer = commandHistory[commandHistory.length - 1 - historyIndex];
     } else if (historyIndex === 0) {
       historyIndex = -1;
-      commandInput.value = currentInput;
+      inputBuffer = currentInput;
+    } else {
+        inputBuffer = commandInput.value;
     }
-    inputBuffer = commandInput.value;
-    renderCommandLine();
+    commandInput.value = inputBuffer;
+    inputDisplay.textContent = inputBuffer;
   } else if (e.key === 'Enter') {
     e.preventDefault();
     const command = inputBuffer.trim();
     if (command) {
-      // Add to history if not a duplicate of the last command
       if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== command) {
         commandHistory.push(command);
       }
       historyIndex = -1;
+      currentInput = '';
       executeCommand(command);
       inputBuffer = '';
       commandInput.value = '';
-      renderCommandLine();
+      inputDisplay.textContent = '';
+    } else {
+       appendToTerminal(`<span class="prompt">root@internet-speedtest:~$</span> `);
     }
+    commandInput.focus();
+  } else {
+      if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+           historyIndex = -1;
+           currentInput = '';
+       }
   }
 });
 
 function renderCommandLine() {
-  const displayElem = document.createElement('span');
-  displayElem.textContent = inputBuffer;
-  displayElem.style.marginLeft = '5px';
-  
-  const promptElem = document.createElement('span');
-  promptElem.className = 'prompt';
-  promptElem.textContent = 'root@internet-speedtest:~$ ';
-  
-  const cursor = document.createElement('span');
-  cursor.className = 'cursor';
-  
-  commandLine.innerHTML = '';
-  commandLine.appendChild(promptElem);
-  commandLine.appendChild(displayElem);
-  commandLine.appendChild(cursor);
+    if (inputDisplay) {
+        inputDisplay.textContent = inputBuffer;
+    }
+    commandInput.focus();
 }
 
-function appendToTerminal(text: string) {
+function appendToTerminal(text: string, isHTML: boolean = true) {
   const outputLine = document.createElement('div');
   outputLine.className = 'result';
-  outputLine.innerHTML = text;
+  if (isHTML) {
+    outputLine.innerHTML = text;
+  } else {
+    outputLine.textContent = text; // Use textContent for plain text to prevent XSS
+  }
   terminalOutput.appendChild(outputLine);
   
   // Auto scroll to bottom
-  outputLine.scrollIntoView();
+  outputLine.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
 function clearTerminal() {
@@ -163,11 +170,7 @@ function displayHelp() {
 Available commands:
   - <span style="color: #AAFF00">help</span>: Display this help message
   - <span style="color: #AAFF00">clear</span> or <span style="color: #AAFF00">cls</span>: Clear the terminal
-  - <span style="color: #AAFF00">speedtest</span>: Run a speed test
-    Options:
-      --download: Test download speed only
-      --upload: Test upload speed only
-      --full: Test all metrics (default)
+  - <span style="color: #AAFF00">speedtest</span>: Run a speed test (download & latency)
   - <span style="color: #AAFF00">about</span>: Display information about this app
   - <span style="color: #AAFF00">history</span>: Show command history
   `);
@@ -197,10 +200,6 @@ function displayHistory() {
 }
 
 async function runSpeedTest(options: string[]) {
-  // Parse options
-  const testDownload = options.length === 0 || options.includes('--full') || options.includes('--download');
-  const testUpload = options.length === 0 || options.includes('--full') || options.includes('--upload');
-  
   appendToTerminal('Initializing speed test...');
   
   // Create progress bar
@@ -211,139 +210,199 @@ async function runSpeedTest(options: string[]) {
   
   const progressFill = progressBar.querySelector('.progress-fill') as HTMLDivElement;
   
-  // Get IP information first
-  appendToTerminal('Getting network information...');
-  let ipInfo = await getIPInfo();
-  
-  // Test latency
-  appendToTerminal('Measuring latency...');
-  const latency = await measureLatency();
-  updateProgress(progressFill, 20);
-  
-  // Test jitter
-  appendToTerminal('Measuring jitter...');
-  const jitter = await measureJitter();
-  updateProgress(progressFill, 30);
-  
-  let downloadSpeed = 0;
-  let uploadSpeed = 0;
-  
-  // Test download speed
-  if (testDownload) {
+  let ipInfo = { ipAddress: 'N/A', isp: 'N/A', serverLocation: 'N/A' };
+  let latency = -1;
+  let downloadSpeed = -1;
+
+  try {
+    // Get IP information first
+    appendToTerminal('Fetching network information...');
+    ipInfo = await getIPInfo();
+    appendToTerminal(`IP: ${ipInfo.ipAddress}, ISP: ${ipInfo.isp}, Location: ${ipInfo.serverLocation}`);
+    updateProgress(progressFill, 10);
+
+    // Test latency
+    appendToTerminal('Measuring latency...');
+    latency = await measureLatency();
+    if (latency !== -1) {
+      appendToTerminal(`Latency: <span style="color: #AAFF00">${latency.toFixed(0)} ms</span>`);
+    } else {
+      appendToTerminal('Latency Test Failed.');
+    }
+    updateProgress(progressFill, 30);
+
+    // Test download speed
     appendToTerminal('Testing download speed...');
-    downloadSpeed = await testDownloadSpeed(progressFill, 30, 70);
-    appendToTerminal(`Download speed: <span style="color: #AAFF00">${downloadSpeed.toFixed(2)} Mbps</span>`);
-  } else {
-    updateProgress(progressFill, 70);
+    downloadSpeed = await testDownloadSpeed(progressFill, 30, 100); // Download takes remaining progress
+    if (downloadSpeed !== -1) {
+      appendToTerminal(`Download speed: <span style="color: #AAFF00">${downloadSpeed.toFixed(2)} Mbps</span>`);
+    } else {
+      appendToTerminal('Download Test Failed.');
+    }
+
+    // Upload speed is skipped for now
+    const uploadSpeed = null;
+
+    // Display final results
+    const result: SpeedTestResult = {
+      downloadSpeed: downloadSpeed,
+      uploadSpeed: uploadSpeed,
+      latency: latency,
+      ipAddress: ipInfo.ipAddress,
+      isp: ipInfo.isp,
+      serverLocation: ipInfo.serverLocation,
+      timestamp: new Date()
+    };
+
+    displayResults(result);
+
+  } catch (error) {
+    appendToTerminal(`An error occurred during the speed test: ${(error as Error).message}`, false);
+    updateProgress(progressFill, 100); // Ensure progress bar completes on error
+  } finally {
+     // Remove progress bar after test completion or error
+     if (progressBar.parentNode) {
+        progressBar.parentNode.removeChild(progressBar);
+     }
+     renderCommandLine(); // Re-render command line prompt
   }
-  
-  // Test upload speed
-  if (testUpload) {
-    appendToTerminal('Testing upload speed...');
-    uploadSpeed = await testUploadSpeed(progressFill, 70, 100);
-    appendToTerminal(`Upload speed: <span style="color: #AAFF00">${uploadSpeed.toFixed(2)} Mbps</span>`);
-  } else {
-    updateProgress(progressFill, 100);
-  }
-  
-  // Display final results
-  const result: SpeedTestResult = {
-    downloadSpeed,
-    uploadSpeed,
-    latency,
-    jitter,
-    ipAddress: ipInfo.ip || 'Unknown',
-    isp: ipInfo.isp || 'Unknown',
-    serverLocation: ipInfo.location || 'Unknown',
-    timestamp: new Date()
-  };
-  
-  displayResults(result);
 }
 
 function updateProgress(progressElement: HTMLDivElement, percentage: number) {
-  progressElement.style.width = `${percentage}%`;
+  progressElement.style.width = `${Math.min(100, Math.max(0, percentage))}%`;
 }
 
-async function getIPInfo() {
+async function getIPInfo(): Promise<{ ipAddress: string; isp: string; serverLocation: string; }> {
   try {
-    // Simulate fetching IP information
-    await delay(500);
+    // Using ip-api.com as an example
+    const response = await fetch('http://ip-api.com/json');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    const locationString = `${data.city || ''}, ${data.regionName || ''}, ${data.country || ''}`.replace(/^, |, $|(,{2,})/g, ', ').replace(/^, |, $/g, '').trim();
     return {
-      ip: '192.168.' + Math.floor(Math.random() * 255) + '.' + Math.floor(Math.random() * 255),
-      isp: 'Mock ISP Provider',
-      location: 'Localhost, Terminal Country'
+      ipAddress: data.query || 'N/A',
+      isp: data.isp || 'N/A',
+      serverLocation: locationString || 'N/A' // Use the cleaned string
     };
   } catch (error) {
-    console.error('Error getting IP info:', error);
-    return { ip: 'Unknown', isp: 'Unknown', location: 'Unknown' };
+    console.error('Error fetching IP info:', error);
+    appendToTerminal('Could not fetch IP information.', false);
+    return { ipAddress: 'N/A', isp: 'N/A', serverLocation: 'N/A' };
   }
 }
 
-async function measureLatency() {
-  // Simulate latency measurement
-  await delay(800);
-  return Math.floor(Math.random() * 50) + 10; // Random latency between 10-60ms
-}
+async function measureLatency(samples: number = 5): Promise<number> {
+  let totalLatency = 0;
+  let successfulSamples = 0;
+  // Use a small, cache-busting URL. Targeting the IP info API endpoint as it should be available.
+  const url = `http://ip-api.com/json?&_=${Date.now()}`;
 
-async function measureJitter() {
-  // Simulate jitter measurement
-  await delay(600);
-  return Math.floor(Math.random() * 15) + 2; // Random jitter between 2-17ms
-}
+  appendToTerminal(`Pinging ${url.split('?')[0]}...`);
 
-async function testDownloadSpeed(progressElement: HTMLDivElement, startPercentage: number, endPercentage: number) {
-  // Simulate download speed test with progress updates
-  const steps = 10;
-  const stepSize = (endPercentage - startPercentage) / steps;
-  
-  for (let i = 0; i < steps; i++) {
-    await delay(300);
-    updateProgress(progressElement, startPercentage + stepSize * (i + 1));
+  for (let i = 0; i < samples; i++) {
+    const startTime = performance.now();
+    try {
+      // Use HEAD request to minimize data transfer
+      const response = await fetch(url, { method: 'HEAD', mode: 'no-cors' }); // Using no-cors as we only need timing, not content
+      // NOTE: 'no-cors' might return opaque responses, timing might be less accurate or zero.
+      // A dedicated backend endpoint would be more reliable here.
+      const endTime = performance.now();
+      const currentLatency = endTime - startTime;
+      totalLatency += currentLatency;
+      successfulSamples++;
+      appendToTerminal(`Ping reply time=${currentLatency.toFixed(0)} ms`);
+      await delay(100); // Small delay between pings
+    } catch (error) {
+       console.error(`Latency test sample ${i + 1} failed:`, error);
+       appendToTerminal(`Ping sample ${i + 1} failed.`);
+    }
   }
-  
-  // Return a simulated download speed between 10 and 150 Mbps
-  return Math.random() * 140 + 10;
+
+  return successfulSamples > 0 ? totalLatency / successfulSamples : -1;
 }
 
-async function testUploadSpeed(progressElement: HTMLDivElement, startPercentage: number, endPercentage: number) {
-  // Simulate upload speed test with progress updates
-  const steps = 8;
-  const stepSize = (endPercentage - startPercentage) / steps;
-  
-  for (let i = 0; i < steps; i++) {
-    await delay(250);
-    updateProgress(progressElement, startPercentage + stepSize * (i + 1));
+async function testDownloadSpeed(progressElement: HTMLDivElement, startPercentage: number, endPercentage: number): Promise<number> {
+  // !!! IMPORTANT: Replace with an actual URL to a test file (e.g., 5MB-10MB) hosted on a reliable server/CDN. !!!
+  // Using a placeholder - THIS WILL NOT WORK without a real URL.
+  const testFileURL = '/path/to/your/test/file.dat'; // <--- REPLACE THIS URL
+  // Example using a public file (use with caution, may be unreliable or rate-limited):
+  // const testFileURL = 'https://proof.ovh.net/files/10Mb.dat';
+
+  appendToTerminal(`Downloading test file from ${testFileURL}...`);
+
+  try {
+    const startTime = performance.now();
+    const response = await fetch(testFileURL + `?&_=${Date.now()}`); // Cache busting
+
+    if (!response.ok) {
+        throw new Error(`Failed to download test file: ${response.status} ${response.statusText}`);
+    }
+    if (!response.body) {
+         throw new Error('Response body is null');
+    }
+
+    const reader = response.body.getReader();
+    const contentLength = Number(response.headers.get('Content-Length'));
+    if (!contentLength || contentLength <= 0) {
+        appendToTerminal('Warning: Content-Length header missing or invalid. Progress/Speed might be inaccurate.', false);
+        // Fallback or different approach might be needed here if Content-Length is unreliable
+    }
+
+    let receivedLength = 0;
+    let chunks = []; // Store chunks if needed, or just track length
+
+    while(true) {
+        const {done, value} = await reader.read();
+
+        if (done) {
+            break;
+        }
+
+        chunks.push(value);
+        receivedLength += value.length;
+
+        if (contentLength > 0) {
+            const percentage = startPercentage + (receivedLength / contentLength) * (endPercentage - startPercentage);
+            updateProgress(progressElement, percentage);
+        } else {
+             // If no content length, maybe update progress based on time elapsed? Less ideal.
+             // For now, just update slightly to show activity
+             const timeElapsed = (performance.now() - startTime) / 1000; // seconds
+             const estimatedProgress = Math.min(endPercentage, startPercentage + timeElapsed * 5); // Arbitrary progress update
+             updateProgress(progressElement, estimatedProgress);
+        }
+    }
+
+    const endTime = performance.now();
+    const durationInSeconds = (endTime - startTime) / 1000;
+    const bitsLoaded = receivedLength * 8;
+    const speedBps = bitsLoaded / durationInSeconds;
+    const speedMbps = speedBps / (1024 * 1024);
+
+    updateProgress(progressElement, endPercentage); // Ensure progress bar completes
+
+    return speedMbps;
+
+  } catch (error) {
+    console.error('Download test error:', error);
+    appendToTerminal(`Download test failed: ${(error as Error).message}`, false);
+    updateProgress(progressElement, endPercentage); // Ensure progress bar completes on error
+    return -1;
   }
-  
-  // Return a simulated upload speed between 5 and 50 Mbps
-  return Math.random() * 45 + 5;
 }
 
 function displayResults(result: SpeedTestResult) {
-  const timestamp = result.timestamp.toLocaleString();
-  
-  // Format results as a terminal table
-  appendToTerminal(`
-<span style="color: #AAFF00">====== SPEED TEST RESULTS ======</span>
-┌─────────────────┬──────────────────────────┐
-│ Test Time       │ ${timestamp.padEnd(26)} │
-├─────────────────┼──────────────────────────┤
-│ IP Address      │ ${result.ipAddress.padEnd(26)} │
-├─────────────────┼──────────────────────────┤
-│ ISP             │ ${result.isp.padEnd(26)} │
-├─────────────────┼──────────────────────────┤
-│ Server Location │ ${result.serverLocation.padEnd(26)} │
-├─────────────────┼──────────────────────────┤
-│ Download Speed  │ ${result.downloadSpeed.toFixed(2)} Mbps${' '.repeat(20 - result.downloadSpeed.toFixed(2).length)} │
-├─────────────────┼──────────────────────────┤
-│ Upload Speed    │ ${result.uploadSpeed.toFixed(2)} Mbps${' '.repeat(20 - result.uploadSpeed.toFixed(2).length)} │
-├─────────────────┼──────────────────────────┤
-│ Latency         │ ${result.latency} ms${' '.repeat(24 - result.latency.toString().length)} │
-├─────────────────┼──────────────────────────┤
-│ Jitter          │ ${result.jitter} ms${' '.repeat(24 - result.jitter.toString().length)} │
-└─────────────────┴──────────────────────────┘
-  `);
+  appendToTerminal('\n--- Test Complete ---'); // Keep newline here for spacing
+  appendToTerminal(`Timestamp:        ${result.timestamp.toLocaleString()}`);
+  appendToTerminal(`IP Address:       ${result.ipAddress}`);
+  appendToTerminal(`ISP:              ${result.isp}`);
+  appendToTerminal(`Location:         ${result.serverLocation}`);
+  appendToTerminal(`Latency:          ${result.latency >= 0 ? result.latency.toFixed(0) + ' ms' : 'N/A'}`);
+  appendToTerminal(`Download Speed:   ${result.downloadSpeed >= 0 ? result.downloadSpeed.toFixed(2) + ' Mbps' : 'N/A'}`);
+  // appendToTerminal(`Upload Speed:     ${result.uploadSpeed ? result.uploadSpeed.toFixed(2) + ' Mbps' : 'N/A (Not Tested)'}`);
+   appendToTerminal('-------------------');
 }
 
 function delay(ms: number): Promise<void> {
@@ -358,3 +417,16 @@ appendToTerminal(`
 <span style="color: #AAFF00">Welcome to Terminal Speed Test v1.0.0</span>
 Type 'help' for available commands or 'speedtest' to start a test.
 `);
+
+// Add a listener to refocus if focus is somehow lost from the input to the body
+document.body.addEventListener('focus', () => {
+    commandInput.focus();
+}, true);
+
+// Add focus logic
+document.querySelector('.terminal')?.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement)?.closest('a')) {
+        return;
+    }
+    commandInput.focus();
+});
