@@ -39,6 +39,7 @@ h1 {
   line-height: 1.1;
   color: #00ff00;
   text-shadow: 0 0 5px #00ff00;
+  margin-bottom: 20px;
 }
 
 #app {
@@ -57,18 +58,32 @@ h1 {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  position: relative;
+  height: 100%;
+  padding-bottom: 50px; /* Make space for command line */
 }
 
 #terminal-output {
   flex-grow: 1;
   overflow-y: auto;
-  padding: 0 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+  height: calc(100% - 60px); /* Adjust for command line height */
 }
 
 #command-line {
   display: flex;
   align-items: center;
-  padding: 5px 10px;
+  padding: 10px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #000000;
+  border-top: 1px solid #003300;
+  height: 40px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .prompt {
@@ -95,11 +110,12 @@ h1 {
   vertical-align: middle;
   margin-left: 2px;
   flex-shrink: 0;
+  box-shadow: 0 0 5px #00ff00;
 }
 
 @keyframes blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  50% { opacity: 0.3; }
 }
 
 .result {

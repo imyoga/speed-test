@@ -20,8 +20,11 @@ app.innerHTML = `
     <div id="terminal-output"></div>
     <div id="command-line">
       <span class="prompt">root@internet-speedtest:~$</span>
-      <span id="input-display"></span>
-      <span class="cursor"></span>
+      <div id="input-container">
+        <span id="input-display-before"></span>
+        <span class="cursor" id="cursor-element"></span>
+        <span id="input-display-after"></span>
+      </div>
       <input type="text" id="command-input" autofocus />
     </div>
   </div>
@@ -30,7 +33,13 @@ app.innerHTML = `
 const terminalOutput = document.getElementById('terminal-output') as HTMLDivElement;
 const commandInput = document.getElementById('command-input') as HTMLInputElement;
 const commandLine = document.getElementById('command-line') as HTMLDivElement;
-const inputDisplay = document.getElementById('input-display') as HTMLSpanElement;
+const inputDisplayBefore = document.getElementById('input-display-before') as HTMLSpanElement;
+const inputDisplayAfter = document.getElementById('input-display-after') as HTMLSpanElement;
+const cursorElement = document.getElementById('cursor-element') as HTMLSpanElement;
+
+// Initial welcome message in terminal output
+appendToTerminal(`Welcome to Terminal Speed Test v1.0.0`);
+appendToTerminal(`Type 'help' for available commands or 'speedtest' to start a test.`);
 
 // Hide the actual input field and handle input display manually
 commandInput.style.opacity = '0';
@@ -40,8 +49,17 @@ commandInput.style.width = '1px';
 commandInput.style.height = '1px';
 commandInput.style.caretColor = 'transparent';
 
+// Initial focus
+commandInput.focus();
+
+// Add a listener to refocus if focus is somehow lost
+document.addEventListener('click', () => {
+  commandInput.focus();
+});
+
 // Focus the input field when clicking anywhere in the terminal
-document.querySelector('.terminal')?.addEventListener('click', () => {
+document.querySelector('.terminal')?.addEventListener('click', (e) => {
+  e.preventDefault();
   commandInput.focus();
 });
 
@@ -52,15 +70,45 @@ let currentInput = '';
 
 // Handle input
 let inputBuffer = '';
+let caretPosition = 0;
+
+// Update the display with current input and caret position
+function updateDisplay() {
+  inputDisplayBefore.textContent = inputBuffer.substring(0, caretPosition);
+  inputDisplayAfter.textContent = inputBuffer.substring(caretPosition);
+}
+
+// Handle input changes
 commandInput.addEventListener('input', (e) => {
   const target = e.target as HTMLInputElement;
   inputBuffer = target.value;
-  inputDisplay.textContent = inputBuffer;
+  caretPosition = target.selectionStart || 0;
+  updateDisplay();
+});
+
+// Handle caret position changes
+commandInput.addEventListener('click', (e) => {
+  caretPosition = commandInput.selectionStart || 0;
+  updateDisplay();
+});
+
+commandInput.addEventListener('keyup', (e) => {
+  if (e.key !== 'Enter') {
+    caretPosition = commandInput.selectionStart || 0;
+    updateDisplay();
+  }
 });
 
 commandInput.addEventListener('keydown', (e) => {
+  // Handle arrow left/right for caret movement
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    setTimeout(() => {
+      caretPosition = commandInput.selectionStart || 0;
+      updateDisplay();
+    }, 0);
+  }
   // Handle arrow up/down for command history
-  if (e.key === 'ArrowUp') {
+  else if (e.key === 'ArrowUp') {
     e.preventDefault();
     if (historyIndex === -1) {
       currentInput = inputBuffer;
@@ -69,7 +117,8 @@ commandInput.addEventListener('keydown', (e) => {
       historyIndex++;
       inputBuffer = commandHistory[commandHistory.length - 1 - historyIndex];
       commandInput.value = inputBuffer;
-      inputDisplay.textContent = inputBuffer;
+      caretPosition = inputBuffer.length;
+      updateDisplay();
     }
   } else if (e.key === 'ArrowDown') {
     e.preventDefault();
@@ -80,10 +129,11 @@ commandInput.addEventListener('keydown', (e) => {
       historyIndex = -1;
       inputBuffer = currentInput;
     } else {
-        inputBuffer = commandInput.value;
+      inputBuffer = commandInput.value;
     }
     commandInput.value = inputBuffer;
-    inputDisplay.textContent = inputBuffer;
+    caretPosition = inputBuffer.length;
+    updateDisplay();
   } else if (e.key === 'Enter') {
     e.preventDefault();
     const command = inputBuffer.trim();
@@ -95,25 +145,24 @@ commandInput.addEventListener('keydown', (e) => {
       currentInput = '';
       executeCommand(command);
       inputBuffer = '';
+      caretPosition = 0;
       commandInput.value = '';
-      inputDisplay.textContent = '';
+      updateDisplay();
     } else {
-       appendToTerminal(`<span class="prompt">root@internet-speedtest:~$</span> `);
+      appendToTerminal(`<span class="prompt">root@internet-speedtest:~$</span> `);
     }
     commandInput.focus();
   } else {
-      if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-           historyIndex = -1;
-           currentInput = '';
-       }
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      historyIndex = -1;
+      currentInput = '';
+    }
   }
 });
 
 function renderCommandLine() {
-    if (inputDisplay) {
-        inputDisplay.textContent = inputBuffer;
-    }
-    commandInput.focus();
+  updateDisplay();
+  commandInput.focus();
 }
 
 function appendToTerminal(text: string, isHTML: boolean = true) {
@@ -408,15 +457,6 @@ function displayResults(result: SpeedTestResult) {
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-// Initial focus
-commandInput.focus();
-
-// Welcome message
-appendToTerminal(`
-<span style="color: #AAFF00">Welcome to Terminal Speed Test v1.0.0</span>
-Type 'help' for available commands or 'speedtest' to start a test.
-`);
 
 // Add a listener to refocus if focus is somehow lost from the input to the body
 document.body.addEventListener('focus', () => {
