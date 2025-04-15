@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terminal Speed Test - Help</title>
+    <link rel="stylesheet" href="/src/style.css">
+  </head>
+  <body>
+    <div class="terminal help-page">
+      <h1>$ Terminal Speed Test - Help Guide</h1>
+      
+      <div class="help-section">
+        <h2>How to Use Terminal Speed Test</h2>
+        <p>Terminal Speed Test is a simple, terminal-style interface for testing your internet connection speed.</p>
+        
+        <h3>Available Commands</h3>
+        <ul>
+          <li><span class="command">speedtest</span> - Run a full speed test (download, upload, latency, jitter)</li>
+          <li><span class="command">speedtest --download</span> - Test download speed only</li>
+          <li><span class="command">speedtest --upload</span> - Test upload speed only</li>
+          <li><span class="command">clear</span> or <span class="command">cls</span> - Clear the terminal screen</li>
+          <li><span class="command">history</span> - View previously entered commands</li>
+          <li><span class="command">about</span> - View information about the application</li>
+          <li><span class="command">help</span> - Display available commands</li>
+        </ul>
+        
+        <h3>Understanding Your Results</h3>
+        <p>After running a speed test, you'll see these metrics:</p>
+        <ul>
+          <li><strong>Download Speed</strong>: How quickly data can be retrieved from the internet (in Mbps)</li>
+          <li><strong>Upload Speed</strong>: How quickly data can be sent to the internet (in Mbps)</li>
+          <li><strong>Latency</strong>: The time it takes for data to travel to its destination and back (in ms)</li>
+          <li><strong>Jitter</strong>: The variation in latency over time (in ms)</li>
+          <li><strong>IP Address</strong>: Your public IP address</li>
+          <li><strong>ISP</strong>: Your Internet Service Provider</li>
+          <li><strong>Server Location</strong>: Location of the test server</li>
+        </ul>
+        
+        <h3>Tips for Accurate Results</h3>
+        <ul>
+          <li>Close other bandwidth-intensive applications before testing</li>
+          <li>For Wi-Fi connections, position yourself close to your router</li>
+          <li>Run multiple tests at different times of day for a better overall picture</li>
+        </ul>
+      </div>
+      
+      <div class="back-link">
+        <a href="/index.html">← Back to Speed Test</a>
+      </div>
+    </div>
+    
+    <script>
+      // Simple script to handle the back button
+      document.querySelector('.back-link a').addEventListener('click', (e) => {
+        e.preventDefault();
+        window.location.href = '/index.html';
+      });
+    </script>
+  </body>
+</html> 

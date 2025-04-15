@@ -17,6 +17,7 @@ app.innerHTML = `
   <div class="terminal">
     <h1>$ Terminal Speed Test v1.0.0</h1>
     <div class="result">Type 'help' to view available commands.</div>
+    <div class="help-link"><a href="/public/help.html" target="_blank">Open Help Guide</a></div>
     <div id="terminal-output"></div>
     <div id="command-line">
       <span class="prompt">root@internet-speedtest:~$</span>

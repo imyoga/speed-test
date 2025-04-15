@@ -135,3 +135,88 @@ button:focus-visible {
     background-color: #000000;
   }
 }
+
+/* Help page styles */
+.help-page {
+  overflow-y: auto;
+  text-align: left;
+}
+
+.help-section {
+  margin: 20px 0;
+}
+
+.help-section h2 {
+  color: #AAFF00;
+  text-shadow: 0 0 5px #00ff00;
+  margin-top: 30px;
+}
+
+.help-section h3 {
+  color: #00ff00;
+  margin-top: 20px;
+  border-bottom: 1px solid #00ff00;
+  padding-bottom: 5px;
+}
+
+.help-section ul {
+  list-style-type: none;
+  padding-left: 10px;
+}
+
+.help-section ul li {
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
+.help-section .command {
+  color: #AAFF00;
+  font-weight: bold;
+  background-color: #001100;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.back-link {
+  margin-top: 30px;
+  padding: 10px 0;
+  border-top: 1px solid #00ff00;
+}
+
+.back-link a {
+  display: inline-block;
+  color: #AAFF00;
+  font-weight: bold;
+  text-decoration: none;
+  padding: 5px 10px;
+  border: 1px solid #00ff00;
+  transition: all 0.3s ease;
+}
+
+.back-link a:hover {
+  background-color: #003300;
+  box-shadow: 0 0 5px #00ff00;
+}
+
+/* Help link in main terminal */
+.help-link {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+}
+
+.help-link a {
+  display: inline-block;
+  color: #AAFF00;
+  font-weight: bold;
+  text-decoration: none;
+  padding: 5px 10px;
+  border: 1px solid #00ff00;
+  transition: all 0.3s ease;
+  font-size: 0.8em;
+}
+
+.help-link a:hover {
+  background-color: #003300;
+  box-shadow: 0 0 5px #00ff00;
+}
