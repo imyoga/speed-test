@@ -1,11 +1,11 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Courier New', monospace;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: dark;
+  color: #00ff00;
+  background-color: #000000;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -15,11 +15,11 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: #00ff00;
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: #33ff33;
 }
 
 body {
@@ -28,69 +28,110 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #000000;
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: 2em;
   line-height: 1.1;
+  color: #00ff00;
+  text-shadow: 0 0 5px #00ff00;
 }
 
 #app {
-  max-width: 1280px;
+  width: 100%;
+  max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
-  text-align: center;
+  text-align: left;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #3178c6aa);
+.terminal {
+  background-color: #000000;
+  border: 1px solid #00ff00;
+  padding: 20px;
+  box-shadow: 0 0 10px #00ff00;
+  overflow: auto;
+  height: 70vh;
+  font-family: 'Courier New', monospace;
+  color: #00ff00;
 }
 
-.card {
-  padding: 2em;
+.prompt {
+  color: #00ff00;
+  font-weight: bold;
 }
 
-.read-the-docs {
-  color: #888;
+.cursor {
+  animation: blink 1s step-end infinite;
+  background-color: #00ff00;
+  display: inline-block;
+  width: 10px;
+  height: 18px;
+  vertical-align: middle;
+  margin-left: 3px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.result {
+  margin: 10px 0;
+  white-space: pre-wrap;
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
+  border-radius: 0;
+  border: 1px solid #00ff00;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+  font-family: 'Courier New', monospace;
+  background-color: #000000;
+  color: #00ff00;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition: background-color 0.25s;
+  text-transform: uppercase;
 }
 
+button:hover {
+  background-color: #003300;
+  border-color: #00ff00;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px solid #00ff00;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background-color: #000000;
+  border: 1px solid #00ff00;
+  margin: 10px 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #00ff00;
+  box-shadow: 0 0 5px #00ff00;
+  width: 0%;
+  transition: width 0.3s;
+}
+
+/* Remove the light theme overrides */
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color: #00ff00;
+    background-color: #000000;
   }
   a:hover {
-    color: #747bff;
+    color: #33ff33;
   }
   button {
-    background-color: #f9f9f9;
+    background-color: #000000;
   }
 }
